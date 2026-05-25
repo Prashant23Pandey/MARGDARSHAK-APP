@@ -1,0 +1,60 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment & secrets
+.env
+.env.*
+.claude/
+firebase-service-account.json
+
+# Blockchain data
+data/
+
+# Test images
+test-images/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
+
+# Presentations & generated docs
+*.pptx
+*.docx
+~$*
+MargDarshak_Slides.html
+project-plan.html
+
+# Doc/PPT generator scripts
+generate-*.js
+
+# Dev-only config
+hardhat.config.cjs
+eslint.config.js
+.node-version
+
+# Build scripts (contract already deployed)
+scripts/
+
+# PPT assets
+public/ppt/
+public/ppt-*
+

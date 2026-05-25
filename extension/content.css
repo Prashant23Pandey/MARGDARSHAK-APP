@@ -1,0 +1,19 @@
+/* MargDarshak Extension — Content Script Styles */
+
+@keyframes MargDarshak-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.MargDarshak-floating-badge {
+  all: initial !important;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+}
+
+.MargDarshak-floating-card {
+  all: initial !important;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+}
+

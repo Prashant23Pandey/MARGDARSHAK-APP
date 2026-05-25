@@ -1,0 +1,225 @@
+import { createHash } from 'crypto';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+
+const CHAIN_FILE = 'data/chain.json';
+let firestoreDb = null;
+
+// Called by server.js after Firebase init
+export function setFirestore(db) { firestoreDb = db; }
+
+class Block {
+  constructor(index, timestamp, data, previousHash = '') {
+    this.index = index;
+    this.timestamp = timestamp;
+    this.data = data;
+    this.previousHash = previousHash;
+    this.nonce = 0;
+    // Freeze the exact JSON serialization at creation time so hash is reproducible
+    this._dataJson = JSON.stringify(this.data);
+    this.hash = this.calculateHash();
+  }
+
+  calculateHash() {
+    return createHash('sha256')
+      .update(
+        this.index +
+          this.previousHash +
+          this.timestamp +
+          (this._dataJson || JSON.stringify(this.data)) +
+          this.nonce
+      )
+      .digest('hex');
+  }
+
+  mineBlock(difficulty) {
+    const target = '0'.repeat(difficulty);
+    while (this.hash.substring(0, difficulty) !== target) {
+      this.nonce++;
+      this.hash = this.calculateHash();
+    }
+  }
+}
+
+class Blockchain {
+  constructor() {
+    this.difficulty = 2;
+    this.chain = this.loadChain();
+  }
+
+  loadChain() {
+    try {
+      if (existsSync(CHAIN_FILE)) {
+        const raw = JSON.parse(readFileSync(CHAIN_FILE, 'utf8'));
+        const chain = raw.map((b) => {
+          const block = new Block(b.index, b.timestamp, b.data, b.previousHash);
+          block.nonce = b.nonce;
+          block._dataJson = b._dataJson || JSON.stringify(b.data);
+          block.hash = b.hash;
+          return block;
+        });
+        if (chain.length > 0) {
+          console.log(`Loaded ${chain.length} blocks from disk.`);
+          return chain;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load chain from disk:', err.message);
+    }
+    return [this.createGenesisBlock()];
+  }
+
+  // Restore chain from Firestore when local file is missing (e.g. Vercel/Render)
+  async loadFromFirestore() {
+    if (!firestoreDb || this.chain.length > 1) return; // already loaded from disk
+    try {
+      const snap = await firestoreDb.collection('blockchain').orderBy('index', 'asc').get();
+      if (!snap.empty && snap.size > this.chain.length) {
+        this.chain = snap.docs.map(doc => {
+          const b = doc.data();
+          const block = new Block(b.index, b.timestamp, b.data, b.previousHash);
+          block.nonce = b.nonce;
+          // Use preserved JSON serialization to avoid Firestore key-order issues
+          block._dataJson = b._dataJson || JSON.stringify(b.data);
+          block.hash = b.hash;
+          return block;
+        });
+        console.log(`Restored ${this.chain.length} blocks from Firestore.`);
+        this.saveChain(); // persist locally
+      }
+    } catch (err) {
+      console.warn('Firestore chain load failed:', err.message);
+    }
+  }
+
+  saveChain() {
+    try {
+      const dir = CHAIN_FILE.substring(0, CHAIN_FILE.lastIndexOf('/'));
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      // Include _dataJson in the saved chain for hash reproducibility
+      const serializable = this.chain.map(b => ({
+        index: b.index, timestamp: b.timestamp, data: b.data,
+        previousHash: b.previousHash, nonce: b.nonce, hash: b.hash,
+        _dataJson: b._dataJson || JSON.stringify(b.data),
+      }));
+      writeFileSync(CHAIN_FILE, JSON.stringify(serializable, null, 2));
+    } catch (err) {
+      console.warn('Failed to save chain:', err.message);
+    }
+  }
+
+  createGenesisBlock() {
+    return new Block(0, Date.now(), { message: 'Genesis Block - Media Authenticator Ledger' }, '0');
+  }
+
+  getLatestBlock() {
+    return this.chain[this.chain.length - 1];
+  }
+
+  addBlock(data) {
+    const block = new Block(
+      this.chain.length,
+      Date.now(),
+      data,
+      this.getLatestBlock().hash
+    );
+    block.mineBlock(this.difficulty);
+    this.chain.push(block);
+    this.saveChain();
+    // Async Firestore sync (fire-and-forget) — include _dataJson for hash reproducibility
+    if (firestoreDb) {
+      const doc = JSON.parse(JSON.stringify(block));
+      doc._dataJson = block._dataJson;
+      firestoreDb.collection('blockchain').doc(block.index.toString())
+        .set(doc)
+        .catch(err => console.warn('Firestore block sync failed:', err.message));
+    }
+    return block;
+  }
+
+  findBySha256(sha256) {
+    return this.chain.find(
+      (block) => block.data && block.data.sha256 === sha256
+    );
+  }
+
+  findByDHash(dHash, threshold = 8) {
+    // 256-bit hash: threshold 8 out of 256 = ~97% match required
+    let bestMatch = null;
+    let bestDistance = Infinity;
+
+    for (const block of this.chain) {
+      if (!block.data || !block.data.dHash) continue;
+      const distance = hammingDistance(dHash, block.data.dHash);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = block;
+      }
+    }
+
+    if (bestDistance <= threshold) {
+      return { block: bestMatch, distance: bestDistance };
+    }
+    return null;
+  }
+
+  isChainValid() {
+    for (let i = 1; i < this.chain.length; i++) {
+      const current = this.chain[i];
+      const previous = this.chain[i - 1];
+
+      if (current.hash !== current.calculateHash()) return false;
+      if (current.previousHash !== previous.hash) return false;
+    }
+    return true;
+  }
+
+  getChain() {
+    return this.chain;
+  }
+
+  // Push entire local chain to Firestore (used to fix corrupt Firestore data)
+  async syncToFirestore() {
+    if (!firestoreDb) return;
+    try {
+      // Delete all existing blockchain docs
+      const snap = await firestoreDb.collection('blockchain').get();
+      const batch1 = firestoreDb.batch();
+      snap.docs.forEach(doc => batch1.delete(doc.ref));
+      await batch1.commit();
+      console.log(`Deleted ${snap.size} old Firestore blockchain docs.`);
+
+      // Write all blocks in batches of 500 (Firestore limit)
+      for (let i = 0; i < this.chain.length; i += 500) {
+        const batch = firestoreDb.batch();
+        const slice = this.chain.slice(i, i + 500);
+        for (const block of slice) {
+          const doc = JSON.parse(JSON.stringify(block));
+          doc._dataJson = block._dataJson || JSON.stringify(block.data);
+          batch.set(firestoreDb.collection('blockchain').doc(block.index.toString()), doc);
+        }
+        await batch.commit();
+      }
+      console.log(`Synced ${this.chain.length} blocks to Firestore.`);
+    } catch (err) {
+      console.warn('Firestore sync failed:', err.message);
+    }
+  }
+}
+
+function hammingDistance(hash1, hash2) {
+  if (!hash1 || !hash2 || hash1.length !== hash2.length) return Infinity;
+  let distance = 0;
+  for (let i = 0; i < hash1.length; i++) {
+    const b1 = parseInt(hash1[i], 16);
+    const b2 = parseInt(hash2[i], 16);
+    let xor = b1 ^ b2;
+    while (xor) {
+      distance += xor & 1;
+      xor >>= 1;
+    }
+  }
+  return distance;
+}
+
+const blockchain = new Blockchain();
+export default blockchain;
