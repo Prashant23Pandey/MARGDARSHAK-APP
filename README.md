@@ -3,43 +3,6 @@
 <p align="center">
   <strong>Immutable proof of existence, chain of custody & forensic analysis on Ethereum</strong>
 </p>
-
-<p align="center">
-  <a href="https://MargDarshakindia-production.up.railway.app">🌐 Live Website</a> · 
-  <a href="https://github.com/yash113gadia/MargDarshak_India/releases/tag/v1.0.0">📱 Download Android APK</a> · 
-  <a href="https://sepolia.etherscan.io/address/0x37FCD33D5FF07cfa3A75D27B4ec4cF09e458dfac">🔗 Smart Contract on Etherscan</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Ethereum-Sepolia-3C3C3D?logo=ethereum" />
-  <img src="https://img.shields.io/badge/Solidity-0.8.24-363636?logo=solidity" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" />
-  <img src="https://img.shields.io/badge/React_Native-0.76-61DAFB?logo=react" />
-  <img src="https://img.shields.io/badge/Expo-SDK_52-000020?logo=expo" />
-  <img src="https://img.shields.io/badge/Express-5-000000?logo=express" />
-  <img src="https://img.shields.io/badge/Firebase-Auth+Firestore-FFCA28?logo=firebase" />
-  <img src="https://img.shields.io/badge/Ethers.js-6-7B3FE4" />
-</p>
-
-**Built for Innovate Bharat Hackathon 2026 · Team Ctrl+Alt+Diablo · CSBC114 · Panel 6**
-
----
-
-## Table of Contents
-
-- [Problem Statement](#problem-statement)
-- [What is MargDarshak?](#what-is-MargDarshak)
-- [Architecture](#architecture)
-- [Platform Overview](#platform-overview)
-- [Features (30+ shipped)](#features-30-shipped)
-- [Security Model](#security-model)
-- [Smart Contract](#smart-contract)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [API Reference](#api-reference)
-- [Getting Started](#getting-started)
-- [Team](#team--ctrlaltdiablo)
-
 ---
 
 ## Problem Statement
@@ -428,31 +391,3 @@ node desktop-agent/agent.js /path/to/watch
 ```
 
 ---
-
-## Team — Ctrl+Alt+Diablo
-
-| Member | Role |
-|--------|------|
-| **Yash Gadia** | Full-stack development, blockchain integration, mobile app |
-| **Sweta Kumari** | Research, forensic analysis pipeline, AI detection |
-| **Priyanshi Shrotriya** | UI/UX design, mobile experience, presentations |
-| **Shreyansh Khemka** | Smart contract development, testing, QA |
-
----
-
-## Links
-
-| Resource | URL |
-|----------|-----|
-| Live Website | [MargDarshakindia-production.up.railway.app](https://MargDarshakindia-production.up.railway.app) |
-| Android APK | [GitHub Releases v1.0.0](https://github.com/yash113gadia/MargDarshak_India/releases/tag/v1.0.0) |
-| Smart Contract | [Etherscan (Sepolia)](https://sepolia.etherscan.io/address/0x37FCD33D5FF07cfa3A75D27B4ec4cF09e458dfac) |
-| API Docs | [/api-docs on live site](https://MargDarshakindia-production.up.railway.app/api-docs) |
-
----
-
-<p align="center">
-  <strong>Innovate Bharat Hackathon 2026 · Sharda University · CSBC114 · Panel 6</strong><br/>
-  <em>Proving integrity in the age of deepfakes.</em>
-</p>
-
