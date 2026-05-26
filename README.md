@@ -3,7 +3,6 @@
 <p align="center">
   <strong>Immutable proof of existence, chain of custody & forensic analysis on Ethereum</strong>
 </p>
----
 
 ## Problem Statement
 
